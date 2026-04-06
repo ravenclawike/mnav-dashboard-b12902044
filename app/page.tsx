@@ -1,65 +1,115 @@
-import Image from "next/image";
+"use client";
+
+const BTC_HOLDINGS = 190000; // approx
+const SHARES_OUTSTANDING = 17000000;
+
+import { useEffect, useState } from "react";
+import {
+  Chart as ChartJS,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
+
+// Register required components
+ChartJS.register(
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+);
 
 export default function Home() {
+
+  const [btcPrices, setBtcPrices] = useState<number[][]>([]);
+  const [stockPrices, setStockPrices] = useState<any[]>([]);
+
+  useEffect(() => {
+    // BTC
+    fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=30")
+      .then(res => res.json())
+      .then((data: any) => setBtcPrices(data.prices));
+
+    // MSTR stock
+    fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSTR&apikey=TUDYU98XHDO75FXH`)
+      .then(res => res.json())
+      .then((data: any) => {
+        const series = data["Time Series (Daily)"];
+        const parsed = Object.keys(series).map(date => ({
+          date,
+          price: parseFloat(series[date]["4. close"]),
+        }));
+        setStockPrices(parsed.reverse());
+      });
+  }, []);
+
+
+  const mnavData = btcPrices.map((btc, i) => {
+    const btcPrice = btc[1];
+    const stock = stockPrices[i];
+
+    if (!stock) return null;
+
+    const marketCap = stock.price * SHARES_OUTSTANDING;
+    const nav = BTC_HOLDINGS * btcPrice;
+    const mnav = marketCap / nav;
+
+    return {
+      date: new Date(btc[0]).toLocaleDateString(),
+      value: mnav,
+    };
+  }).filter(Boolean);
+  const latest = mnavData.at(-1)?.value;
+  // Prepare chart data
+  const chartData = {
+    labels: mnavData.map((d) => d.date),
+    datasets: [
+      {
+        label: "MSTR mNAV",
+        data: mnavData.map((d) => d.value),
+      },
+      {
+        label: "BTC Price",
+        data: btcPrices.slice(0, mnavData.length).map(p => p[1]),
+        yAxisID: "y1",
+      },
+    ],
+  };
+  const options = {
+    scales: {
+      y: { type: "linear", position: "left" },
+      y1: { type: "linear", position: "right" },
+    },
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div style={{ width: "900px", margin: "auto", fontFamily: "Arial" }}>
+      <h1>MicroStrategy mNAV Dashboard</h1>
+      <p>Indicator: Modified Net Asset Value (mNAV)</p>
+      <Line data={chartData} options={options} />
+      <h2>Latest mNAV: {latest?.toFixed(2)}</h2>
+      <p>
+        {latest && latest > 1.5
+          ? "Market is pricing a strong premium (potential overvaluation)"
+          : latest && latest < 1
+          ? "Trading at discount (possible undervaluation)"
+          : "Near fair value"}
+      </p>
+      <h3>What is mNAV?</h3>
+      <p>
+        mNAV measures the ratio between a company's market value and the value of its Bitcoin holdings.
+      </p>
+
+      <h3>Why it matters</h3>
+      <p>
+        It shows whether the market values the company at a premium or discount relative to its BTC assets.
+      </p>
     </div>
   );
 }
