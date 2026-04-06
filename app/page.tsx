@@ -69,7 +69,7 @@ export default function Home() {
       date: new Date(btc[0]).toLocaleDateString(),
       value: mnav,
     };
-  }).filter(Boolean);
+  }).filter((d): d is { date: string; value: number } => d !== null);
   const latest = mnavData.at(-1)?.value;
   // Prepare chart data
   const chartData = {
