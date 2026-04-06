@@ -37,7 +37,7 @@ export default function Home() {
       .then((data: any) => setBtcPrices(data.prices));
 
     // MSTR stock
-    fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSTR&apikey=TUDYU98XHDO75FXH`)
+    fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=MSTR&apikey=API_KEY`)
       .then(res => res.json())
       .then((data: any) => {
         const series = data["Time Series (Daily)"];
