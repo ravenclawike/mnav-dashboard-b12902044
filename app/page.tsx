@@ -78,10 +78,14 @@ export default function Home() {
       {
         label: "MSTR mNAV",
         data: mnavData.map((d) => d.value),
+        borderColor: "blue",
+        backgroundColor: "blue",
       },
       {
         label: "BTC Price",
         data: btcPrices.slice(0, mnavData.length).map(p => p[1]),
+        borderColor: "red",
+        backgroundColor: "red",
         yAxisID: "y1",
       },
     ],
