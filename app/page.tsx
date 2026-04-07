@@ -2,7 +2,7 @@
 
 const BTC_HOLDINGS = 190000; // approx
 const SHARES_OUTSTANDING = 17000000;
-
+import { ChartOptions } from "chart.js";
 import { useEffect, useState } from "react";
 import {
   Chart as ChartJS,
@@ -86,7 +86,7 @@ export default function Home() {
       },
     ],
   };
-  const options = {
+  const options: ChartOptions<"line"> = {
     scales: {
       y: { type: "linear", position: "left" },
       y1: { type: "linear", position: "right" },
